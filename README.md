@@ -15,7 +15,7 @@ CareLoop Clinics operates eight outpatient clinics. This project builds a connec
 - **Part 1 — Data preparation:** Cleaned 1,020 raw booking rows to 990 usable appointments across 8 clinics; 218 appointments were no-shows (22.0%).
 - **Part 2 — SQL analysis:** Gomti Nagar Care Point had the highest all-clinic no-show rate at 33.3% (30 of 90 appointments); the 31+ lead-day band had a 60.5% rate (26 of 43).
 - **Part 3 — Machine learning:** Logistic Regression was selected with training cross-validation ROC-AUC 0.774; at threshold 0.35 it flagged 49 of 198 test appointments and achieved test ROC-AUC 0.789.
-- **Part 4 — Generative AI:** Of the first 10 follow-up notes, 8 received valid structured classifications, 1 blank note was skipped and 1 response was invalid after a Gemini 503 service error.
+- **Part 4 — Generative AI:** Of the first 10 follow-up notes, 9 received valid structured classifications and 1 blank note was skipped without an API call.
 
 ## Business recommendation
 
@@ -73,15 +73,15 @@ The test set was reserved for final reporting; model and threshold selection use
 Gemini returns JSON with `root_cause`, `confidence`, `summary` and `recommended_action`. Pydantic validates the fields, and the allowed root-cause list is checked separately.
 
 Final `notes_analysed.csv` status:
-- 8 valid non-blank note responses.
+- 9 valid non-blank note responses.
 - 1 blank note (N004), skipped without an API call and recorded with the required default values.
-- 1 invalid response (N001), retained as invalid after a temporary Gemini 503 error; its unavailable fields remain blank.
+- N001 was successfully classified as `forgot_or_no_reminder`.
 
-The merged ten-note sample contains 5 appointments with `reminder_sent = No` and 5 with `reminder_sent = Yes`. N007 was classified as `forgot_or_no_reminder` and its appointment had no reminder. N001 remains invalid in the final batch output and has not been manually repaired. The V2 CRAFT prompt returned allowed categories for N007 and N009; the V1 simple prompt returned an out-of-list category for N009, while the N007 V1 request encountered a 503 error.
+The merged ten-note sample contains 5 appointments with `reminder_sent = No` and 5 with `reminder_sent = Yes`. The cross-tabulation shows that both notes classified as `forgot_or_no_reminder` had no reminder recorded. The V2 CRAFT prompt returned allowed categories for N007 and N009; the V1 simple prompt returned out-of-list categories for both notes ("forgot and no SMS reminder received" for N007 and "unreachable" for N009).
 
 ## Limitations
 
-1. **Small note sample:** Only the first 10 follow-up notes were analysed. This is an illustration and cannot establish the real distribution of no-show reasons across all clinics; one note also had an unsuccessful API response.
+1. **Small note sample:** Only the first 10 follow-up notes were analysed. This is an illustration and cannot establish the real distribution of no-show reasons across all clinics.
 2. **Cleaning before splitting:** The medians, quartiles and outlier fences were calculated using all 990 rows before the train/test split, so test rows indirectly influenced the cleaning statistics.
 3. **Random split design:** The split was random rather than past-to-future, and the same patient may appear in both training and test data. A production evaluation should use time-based and patient-aware validation.
 
